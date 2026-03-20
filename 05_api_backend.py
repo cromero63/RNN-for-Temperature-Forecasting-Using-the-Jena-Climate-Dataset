@@ -72,35 +72,34 @@ scaler = None
 # The client sends a JSON body with a 2-D list: 120 rows × 3 columns.
 # Each inner list is [T (degC), p (mbar), rh (%)] for one timestep.
 #
-# class ForecastRequest(BaseModel):
-#     window: List[List[float]]   # shape: (120, 3)
-#
-# YOUR CODE HERE:
+class ForecastRequest(BaseModel):
+    window: List[List[float]]   # shape: (120, 3)
+
 
 
 # ===========================================================================
 # TODO 2 ─ Load model and scaler on startup using lifespan
 # ===========================================================================
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     global model, scaler
-#     device = torch.device('cpu')
-#     if os.path.exists(MODEL_PATH):
-#         model = ClimateLSTM()
-#         model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-#         model.eval()
-#         print(f"Model loaded from {MODEL_PATH}")
-#     else:
-#         print(f"WARNING: model not found at {MODEL_PATH}. Train Step 4 first.")
-#     if os.path.exists(SCALER_PATH):
-#         scaler = joblib.load(SCALER_PATH)
-#         print(f"Scaler loaded from {SCALER_PATH}")
-#     else:
-#         print(f"WARNING: scaler not found at {SCALER_PATH}.")
-#     yield   # ← application runs here
-#
-# app = FastAPI(title="Jena Climate Forecast API", lifespan=lifespan)
-#
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  global model, scaler
+  device = torch.device('cpu')
+  if os.path.exists(MODEL_PATH):
+    model = ClimateLSTM()
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+    model.eval()
+    print(f"Model loaded from {MODEL_PATH}")
+  else:
+    print(f"WARNING: model not found at {MODEL_PATH}. Train Step 4 first.")
+  if os.path.exists(SCALER_PATH):
+    scaler = joblib.load(SCALER_PATH)
+    print(f"Scaler loaded from {SCALER_PATH}")
+  else:
+    print(f"WARNING: scaler not found at {SCALER_PATH}.")
+  yield 
+
+app = FastAPI(title="Jena Climate Forecast API", lifespan=lifespan)
+
 # YOUR CODE HERE:
 app = FastAPI(title="Jena Climate Forecast API")   # placeholder — replace with lifespan version
 
@@ -108,66 +107,61 @@ app = FastAPI(title="Jena Climate Forecast API")   # placeholder — replace wit
 # ===========================================================================
 # TODO 3 ─ Add CORS middleware
 # ===========================================================================
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-#
-# YOUR CODE HERE:
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ===========================================================================
 # TODO 4 ─ POST /forecast endpoint
 # ===========================================================================
-# @app.post("/forecast")
-# async def forecast(request: ForecastRequest):
-#     if model is None or scaler is None:
-#         raise HTTPException(status_code=503, detail="Model or scaler not loaded.")
-#
-#     window = np.array(request.window, dtype=np.float32)   # (120, 3)
-#     if window.shape != (WINDOW_SIZE, N_FEATURES):
-#         raise HTTPException(
-#             status_code=422,
-#             detail=f"Expected window shape ({WINDOW_SIZE}, {N_FEATURES}), got {window.shape}"
-#         )
-#
-#     # 1. Normalize with the SAME scaler used in training
-#     window_scaled = scaler.transform(window)              # (120, 3)
-#
-#     # 2. Convert to tensor and add batch dimension
-#     x = torch.tensor(window_scaled[np.newaxis, ...], dtype=torch.float32)   # (1, 120, 3)
-#
-#     # 3. Predict (still scaled)
-#     model.eval()
-#     with torch.no_grad():
-#         pred_scaled = model(x).item()                     # scalar float in [0, 1]
-#
-#     # 4. Inverse transform to Celsius
-#     dummy = np.zeros((1, N_FEATURES))
-#     dummy[0, 0] = pred_scaled
-#     pred_celsius = scaler.inverse_transform(dummy)[0, 0]
-#
-#     return {"predicted_temperature_celsius": round(float(pred_celsius), 4)}
-#
-# YOUR CODE HERE:
+@app.post("/forecast")
+async def forecast(request: ForecastRequest):
+  if model is None or scaler is None:
+    raise HTTPException(status_code=503, detail="Model or scaler not loaded.")
+
+  window = np.array(request.window, dtype=np.float32)   # (120, 3)
+  if window.shape != (WINDOW_SIZE, N_FEATURES):
+    raise HTTPException(
+      status_code=422,
+      detail=f"Expected window shape ({WINDOW_SIZE}, {N_FEATURES}), got {window.shape}"
+    )
+
+  # 1. Normalize with the SAME scaler used in training
+  window_scaled = scaler.transform(window)              # (120, 3)
+
+  # 2. Convert to tensor and add batch dimension
+  x = torch.tensor(window_scaled[np.newaxis, ...], dtype=torch.float32)   # (1, 120, 3)
+
+  # 3. Predict (still scaled)
+  model.eval()
+  with torch.no_grad():
+    pred_scaled = model(x).item()                     # scalar float in [0, 1]
+
+  # 4. Inverse transform to Celsius
+  dummy = np.zeros((1, N_FEATURES))
+  dummy[0, 0] = pred_scaled
+  pred_celsius = scaler.inverse_transform(dummy)[0, 0]
+
+  return {"predicted_temperature_celsius": round(float(pred_celsius), 4)}
+
 
 
 # ===========================================================================
 # TODO 5 ─ GET /model/info endpoint
 # ===========================================================================
-# @app.get("/model/info")
-# async def model_info():
-#     if model is None:
-#         raise HTTPException(status_code=503, detail="Model not loaded.")
-#     total_params = sum(p.numel() for p in model.parameters())
-#     return {
-#         "architecture":  str(model),
-#         "total_params":  total_params,
-#         "window_size":   WINDOW_SIZE,
-#         "n_features":    N_FEATURES,
-#         "features":      ["T (degC)", "p (mbar)", "rh (%)"],
-#     }
-#
-# YOUR CODE HERE:
+@app.get("/model/info")
+async def model_info():
+  if model is None:
+    raise HTTPException(status_code=503, detail="Model not loaded.")
+  total_params = sum(p.numel() for p in model.parameters())
+  return {
+    "architecture":  str(model),
+    "total_params":  total_params,
+    "window_size":   WINDOW_SIZE,
+    "n_features":    N_FEATURES,
+    "features":      ["T (degC)", "p (mbar)", "rh (%)"],
+  }
