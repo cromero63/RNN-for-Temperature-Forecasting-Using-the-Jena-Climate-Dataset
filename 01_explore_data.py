@@ -34,7 +34,7 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), "sample_data", "climate_samp
 #   df = load_data(DATA_PATH)
 #
 # YOUR CODE HERE:
-df = None  # replace this line
+df = load_data(DATA_PATH)
 
 
 # ===========================================================================
@@ -47,6 +47,10 @@ df = None  # replace this line
 #   d) df.describe()     — summary statistics (min, max, mean, std, ...)
 #
 # YOUR CODE HERE:
+print(df.shape)
+print(df.dtypes)
+print(df.head(10))
+print(df.describe())
 
 
 # ===========================================================================
@@ -57,6 +61,7 @@ df = None  # replace this line
 # should be none, but it is good practice to always check.
 #
 # YOUR CODE HERE:
+print(df.isnull().sum())
 
 
 # ===========================================================================
@@ -72,6 +77,12 @@ df = None  # replace this line
 #   )
 #
 # YOUR CODE HERE:
+plot_series(
+    dates  = df.index,
+    values = df["T (degC)"],
+    title  = "Temperature Over Time",
+    ylabel = "Temperature (°C)"
+)
 
 
 # ===========================================================================
@@ -99,3 +110,16 @@ df = None  # replace this line
 #   plt.show()
 #
 # YOUR CODE HERE:
+fig, axes = plt.subplots(3, 1, figsize=(12, 8), sharex=True)
+columns = ["T (degC)", "p (mbar)", "rh (%)"]
+ylabels = ["Temp (°C)", "Pressure (mbar)", "Humidity (%)"]
+
+for ax, col, ylabel in zip(axes, columns, ylabels):
+    ax.plot(df.index, df[col], linewidth=0.8)
+    ax.set_ylabel(ylabel)
+    ax.grid(True, alpha=0.3)
+
+axes[0].set_title("Climate Features Over Time")
+axes[2].set_xlabel("Datetime")
+plt.tight_layout()
+plt.show()
