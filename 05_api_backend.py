@@ -100,9 +100,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Jena Climate Forecast API", lifespan=lifespan)
 
-# YOUR CODE HERE:
-app = FastAPI(title="Jena Climate Forecast API")   # placeholder — replace with lifespan version
-
 
 # ===========================================================================
 # TODO 3 ─ Add CORS middleware
