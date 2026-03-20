@@ -64,9 +64,9 @@ data = df[FEATURES].values          # numpy array, shape (2000, 3)
 # Do NOT shuffle — time order must be preserved for time-series forecasting.
 #
 # YOUR CODE HERE:
-split_idx  = None   # replace
-train_data = None   # replace
-test_data  = None   # replace
+split_idx  = int(len(data) * TRAIN_FRAC)
+train_data = data[:split_idx]
+test_data  = data[split_idx:]
 
 
 # ===========================================================================
@@ -79,9 +79,9 @@ test_data  = None   # replace
 # ⚠️ NEVER call fit_transform on test_data — that would leak future statistics!
 #
 # YOUR CODE HERE:
-scaler       = None  # replace
-train_scaled = None  # replace
-test_scaled  = None  # replace
+scaler       = MinMaxScaler()
+train_scaled = scaler.fit_transform(train_data)
+test_scaled  = scaler.transform(test_data)
 
 
 # ===========================================================================
@@ -89,18 +89,15 @@ test_scaled  = None  # replace
 # ===========================================================================
 # Implement the helper function below, then call it for both splits.
 #
-# def make_sequences(data_array, window_size):
-#     X, y = [], []
-#     for i in range(len(data_array) - window_size):
-#         X.append(data_array[i : i + window_size])        # shape (window_size, 3)
-#         y.append(data_array[i + window_size, 0])         # col 0 = T (degC)
-#     return np.array(X), np.array(y)
-#
-# X_train, y_train = make_sequences(train_scaled, WINDOW_SIZE)
-# X_test,  y_test  = make_sequences(test_scaled,  WINDOW_SIZE)
-#
-# YOUR CODE HERE:
-X_train = y_train = X_test = y_test = None  # replace
+def make_sequences(data_array, window_size):
+  X, y = [], []
+  for i in range(len(data_array) - window_size):
+    X.append(data_array[i : i + window_size])        # shape (window_size, 3)
+    y.append(data_array[i + window_size, 0])         # col 0 = T (degC)
+  return np.array(X), np.array(y)
+
+X_train, y_train = make_sequences(train_scaled, WINDOW_SIZE)
+X_test,  y_test  = make_sequences(test_scaled,  WINDOW_SIZE)
 
 
 # ===========================================================================
@@ -112,14 +109,16 @@ X_train = y_train = X_test = y_test = None  # replace
 # (exact numbers depend on split_idx and window; numbers in docstring are approx)
 #
 # YOUR CODE HERE:
+print(f"X_train: {X_train.shape}, y_train: {y_train.shape}")
+print(f"X_test: {X_test.shape}, y_test: {y_test.shape}")
 
 
 # ---------------------------------------------------------------------------
 # Save for use in later steps (optional convenience)
 # ---------------------------------------------------------------------------
 # Uncomment to persist arrays to disk so 04_train_evaluate.py can load them:
-# np.save("X_train.npy", X_train)
-# np.save("y_train.npy", y_train)
-# np.save("X_test.npy",  X_test)
-# np.save("y_test.npy",  y_test)
-# import joblib; joblib.dump(scaler, "scaler.pkl")
+np.save("X_train.npy", X_train)
+np.save("y_train.npy", y_train)
+np.save("X_test.npy",  X_test)
+np.save("y_test.npy",  y_test)
+import joblib; joblib.dump(scaler, "scaler.pkl")

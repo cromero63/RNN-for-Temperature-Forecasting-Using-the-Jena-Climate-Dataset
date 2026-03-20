@@ -105,23 +105,20 @@ train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
 #   h) Accumulate epoch loss for history tracking
 #
 # Store average loss per epoch in a list called `history_loss`.
-#
-# for epoch in range(EPOCHS):
-#     model.train()
-#     epoch_loss = 0.0
-#     for X_batch, y_batch in train_dl:
-#         optimizer.zero_grad()
-#         preds = model(X_batch)
-#         loss  = criterion(preds, y_batch)
-#         loss.backward()
-#         optimizer.step()
-#         epoch_loss += loss.item() * len(y_batch)
-#     avg_loss = epoch_loss / len(train_ds)
-#     history_loss.append(avg_loss)
-#     print(f"Epoch {epoch+1:2d}/{EPOCHS}  loss: {avg_loss:.6f}")
-#
-# YOUR CODE HERE:
-history_loss = []   # replace with your implementation
+history_loss = [] 
+for epoch in range(EPOCHS):
+  model.train()
+  epoch_loss = 0.0
+  for X_batch, y_batch in train_dl:
+    optimizer.zero_grad()
+    preds = model(X_batch)
+    loss  = criterion(preds, y_batch)
+    loss.backward()
+    optimizer.step()
+    epoch_loss += loss.item() * len(y_batch)
+  avg_loss = epoch_loss / len(train_ds)
+  history_loss.append(avg_loss)
+  print(f"Epoch {epoch+1:2d}/{EPOCHS}  loss: {avg_loss:.6f}")
 
 
 # ===========================================================================
@@ -129,29 +126,25 @@ history_loss = []   # replace with your implementation
 # ===========================================================================
 # Use plot_series() from utils to visualise loss over epochs.
 #
-# plot_series(
-#     dates  = range(1, EPOCHS + 1),
-#     values = history_loss,
-#     title  = "Training Loss (MSE) Over Epochs",
-#     xlabel = "Epoch",
-#     ylabel = "MSE Loss",
-# )
-#
-# YOUR CODE HERE:
+plot_series(
+    dates  = range(1, EPOCHS + 1),
+    values = history_loss,
+    title  = "Training Loss (MSE) Over Epochs",
+    xlabel = "Epoch",
+    ylabel = "MSE Loss",
+)
 
 
 # ===========================================================================
 # TODO 3 ─ Generate predictions on the test set
 # ===========================================================================
 # In PyTorch, disable gradient computation during inference:
-#
-# model.eval()
-# with torch.no_grad():
-#     preds_scaled = model(X_test_t)   # (N_test, 1)
-# preds_scaled = preds_scaled.numpy()  # convert to numpy for inverse transform
-#
-# YOUR CODE HERE:
-preds_scaled = None  # replace
+
+preds_scaled = None
+model.eval()
+with torch.no_grad():
+    preds_scaled = model(X_test_t)   # (N_test, 1)
+preds_scaled = preds_scaled.numpy()  # convert to numpy for inverse transform
 
 
 # ===========================================================================
@@ -159,39 +152,29 @@ preds_scaled = None  # replace
 # ===========================================================================
 # Use utils.inverse_transform_predictions() — it reconstructs the dummy
 # full-feature array so the scaler can undo normalisation correctly.
-#
-# preds_celsius = inverse_transform_predictions(scaler, preds_scaled)
-#
-# Also inverse-transform the ground-truth y_test values:
-# dummy_y = np.zeros((len(y_test), 3))
-# dummy_y[:, 0] = y_test
-# actual_celsius = scaler.inverse_transform(dummy_y)[:, 0]
-#
-# YOUR CODE HERE:
-preds_celsius  = None  # replace
-actual_celsius = None  # replace
+preds_celsius = inverse_transform_predictions(scaler, preds_scaled)
+dummy_y = np.zeros((len(y_test), 3))
+dummy_y[:, 0] = y_test
+actual_celsius = scaler.inverse_transform(dummy_y)[:, 0]
 
 
 # ===========================================================================
 # TODO 5 ─ Compute RMSE
 # ===========================================================================
-# rmse = compute_rmse(actual_celsius, preds_celsius)
-# print(f"\nTest RMSE: {rmse:.4f} °C")
-#
-# YOUR CODE HERE:
+rmse = compute_rmse(actual_celsius, preds_celsius)
+print(f"\nTest RMSE: {rmse:.4f} °C")
+
 
 
 # ===========================================================================
 # TODO 6 ─ Plot actual vs predicted temperatures
 # ===========================================================================
-# plot_predictions(actual_celsius, preds_celsius)
-#
-# YOUR CODE HERE:
+plot_predictions(actual_celsius, preds_celsius)
 
 
 # ---------------------------------------------------------------------------
 # Optional: save model and scaler for use in Steps 5–6
 # ---------------------------------------------------------------------------
-# torch.save(model.state_dict(), "climate_lstm.pt")
-# joblib.dump(scaler, "scaler.pkl")
-# print("Model and scaler saved.")
+torch.save(model.state_dict(), "climate_lstm.pt")
+joblib.dump(scaler, "scaler.pkl")
+print("Model and scaler saved.")
